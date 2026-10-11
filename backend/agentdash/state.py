@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import gzip
 import shutil
+import sqlite3
 import subprocess
 import tempfile
 from pathlib import Path
@@ -48,8 +49,11 @@ def push(sources: str | list[str]) -> None:
         if not database.is_file():
             raise FileNotFoundError(database)
         with tempfile.TemporaryDirectory() as directory:
+            snapshot = Path(directory) / f"{source}.db"
+            with sqlite3.connect(database) as source_db, sqlite3.connect(snapshot) as target_db:
+                source_db.backup(target_db)
             asset = Path(directory) / f"{source}.db.gz"
-            with database.open("rb") as input_file, gzip.open(asset, "wb") as output_file:
+            with snapshot.open("rb") as input_file, gzip.open(asset, "wb") as output_file:
                 shutil.copyfileobj(input_file, output_file)
             release = subprocess.run(["gh", "release", "view", "state", "--repo", STATE_RELEASE_REPO], capture_output=True, check=False)
             if release.returncode:

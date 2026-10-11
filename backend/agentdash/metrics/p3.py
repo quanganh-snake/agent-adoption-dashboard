@@ -1,16 +1,19 @@
 """Metrics for the fixed AIDev repository panel."""
 from __future__ import annotations
 from collections import defaultdict
-from datetime import date
+from datetime import date, datetime
 from statistics import median
 
+from ..sources.taskclass import TASK_CATEGORY_MAP
 AGENTS=('Codex','Devin','Copilot','Cursor','Claude Code','Jules')
 PAPER_AGENTS=AGENTS[:-1]
 def _pct(n,d): return round(100*n/d,4) if d else None
 def _rows(db,q,a=()): return [dict(x) for x in db.execute(q,a).fetchall()]
 def _aggregate(rows):
     n=len(rows); merged=[r for r in rows if r['merged_at']]
-    hours=[(date.fromisoformat(r['merged_at'][:10])-date.fromisoformat(r['created_at'][:10])).days*24 for r in merged if r['created_at']]
+    def parse(value):
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    hours=[(parse(r['merged_at'])-parse(r['created_at'])).total_seconds()/3600 for r in merged if r['created_at']]
     return {'prs':n,'merged':len(merged),'merge_rate_pct':_pct(len(merged),n),'ttm_mean_h':round(sum(hours)/len(hours),4) if hours else None,'ttm_median_h':median(hours) if hours else None}
 def series(db, months, ytd_until):
     rows=_rows(db,"SELECT p.*, r.human_baseline FROM p3_pr p LEFT JOIN p3_repo r ON r.repo=p.repo")
@@ -34,5 +37,5 @@ def yearly(db, years, ytd_until):
       for k in ('Agent','Human'):
        s=[r for r in yr if (r['class'] in PAPER_AGENTS if k=='Agent' else r['class']=='Human' and r['human_baseline'])]; result['bot_comment_share_pct'][str(y)][k]=_pct(sum(r['comments_bot'] or 0 for r in s),sum((r['comments_bot'] or 0)+(r['comments_human'] or 0) for r in s)); result['median_files'][str(y)][k]=median([r['files_changed'] for r in s if r['files_changed'] is not None]) if any(r['files_changed'] is not None for r in s) else None; result['median_hunks'][str(y)][k]=median([r['hunks'] for r in s if r['hunks'] is not None]) if any(r['hunks'] is not None for r in s) else None; cc=[r['avg_cc'] for r in s if (r['avg_cc'] or 0)>0]; result['mean_cc'][str(y)][k]=sum(cc)/len(cc) if cc else None
       for task in ('Feature & Behavior','Docs & Style','Infrastructure','Internal Quality'):
-       result['task_merge_rate_pct'][str(y)][task]={k:_pct(sum(r['merged_at'] is not None for r in yr if r['task_type']==task and (r['class'] in PAPER_AGENTS if k=='Agent' else r['class']=='Human')),sum(1 for r in yr if r['task_type']==task and (r['class'] in PAPER_AGENTS if k=='Agent' else r['class']=='Human'))) for k in ('Agent','Human')}
+       result['task_merge_rate_pct'][str(y)][task]={k:_pct(sum(r['merged_at'] is not None for r in yr if TASK_CATEGORY_MAP.get(r['task_type'])==task and (r['class'] in PAPER_AGENTS if k=='Agent' else r['class']=='Human')),sum(1 for r in yr if TASK_CATEGORY_MAP.get(r['task_type'])==task and (r['class'] in PAPER_AGENTS if k=='Agent' else r['class']=='Human'))) for k in ('Agent','Human')}
     return result
