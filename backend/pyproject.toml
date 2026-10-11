@@ -1,0 +1,28 @@
+[project]
+name = "agentdash"
+version = "0.1.0"
+description = "Dashboard tái lập tiếp nhận coding agent"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi",
+  "uvicorn[standard]",
+  "apscheduler>=3.10,<4",
+  "httpx",
+  "pandas",
+  "pyarrow",
+  "lizard",
+  "tiktoken",
+  "openai",
+  "pytest",
+]
+
+[project.scripts]
+agentdash = "agentdash.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.8.0,<0.9.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "agentdash"
+module-root = "."

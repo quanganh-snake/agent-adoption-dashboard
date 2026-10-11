@@ -1,0 +1,5 @@
+'use client';
+import { DataError, Loading, MonthlyTable } from '@/components/dashboard';
+import { useSnapshot } from '@/lib/data';
+import type { Monthly2026 } from '@/lib/types';
+export default function Monthly2026Page() { const snapshot=useSnapshot<Monthly2026>('monthly_2026'); if(snapshot.error)return <DataError name="bảng tháng 2026"/>; if(!snapshot.data)return <Loading/>; const data=snapshot.data; const exportCsv=()=>{const {months,rows}=data;const lines=[['Chỉ số',...months].join(','),...rows.map(row=>[row.label_vi,...months.map(month=>row.values[month]??'')].map(value=>`"${value}"`).join(','))];const link=document.createElement('a');link.href=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8'}));link.download='bang-2026.csv';link.click();URL.revokeObjectURL(link.href);}; return <><header className="page-header"><h2>Bảng 2026</h2><p>Chuỗi chỉ số theo tháng, có ghi rõ ô còn chưa ổn định và mẫu nhỏ.</p></header><div className="actions"><button className="button" onClick={exportCsv}>Xuất CSV</button></div><MonthlyTable snapshot={data}/></>; }

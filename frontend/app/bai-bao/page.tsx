@@ -1,0 +1,6 @@
+'use client';
+import { CompareTable, DataError, Loading } from '@/components/dashboard';
+import { useSnapshot } from '@/lib/data';
+import type { PaperVsLatest } from '@/lib/types';
+const titles: Record<string,string>={p2_table1:'[2] Bảng 1: ước tính tiếp nhận',p2_tools:'[2] Hình 8: công cụ',p3_table2:'[3] Bảng 2: Agent và con người',p3_table3:'[3] Bảng 3: agent trong repo >500 sao',p3_table4:'[3] Bảng 4: từng agent',p3_table5:'[3] Bảng 5: task và tác giả',p3_table7:'[3] Bảng 7: comment bot / người'};
+export default function PaperPage(){const snapshot=useSnapshot<PaperVsLatest>('paper_vs_latest');if(snapshot.error)return <DataError name="so sánh bài báo"/>;if(!snapshot.data)return <Loading/>;return <><header className="page-header"><h2>Bài báo và dữ liệu mới nhất</h2><p>Δ là chênh lệch giữa dữ liệu mới nhất và số liệu bài báo.</p></header>{Object.entries(snapshot.data).map(([key,rows])=>key==='p3_table6_paper_only'?<section className="card" key={key}><h2>[3] Bảng 6: LIWC</h2><p>LIWC-22 là phần mềm thương mại; không tái lập tự động.</p><CompareTable title="Kết quả bài báo" rows={rows}/></section>:<CompareTable key={key} title={titles[key]??key} rows={rows}/>)}<p className="note">Bảng 7 cần được đọc cùng lưu ý: định nghĩa churn ở dữ liệu mới có thể khác dữ liệu bài báo.</p></>;}

@@ -1,0 +1,70 @@
+name: Đồng bộ dữ liệu và triển khai Pages
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      GITHUB_TOKENS: ${{ secrets.GH_TOKENS }}
+      AGENTDASH_ROLE: ci
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: astral-sh/setup-uv@v6
+      - name: Cài phụ thuộc backend
+        working-directory: backend
+        run: uv sync
+      - name: Tải trạng thái đã công bố
+        working-directory: backend
+        run: uv run agentdash state pull --sources p2,p3,global
+      - name: Đồng bộ số liệu toàn GitHub
+        working-directory: backend
+        run: uv run agentdash sync global
+      - name: Đồng bộ panel bài báo 3
+        working-directory: backend
+        run: uv run agentdash sync p3 --enrich --max-minutes 300
+      - name: Công bố trạng thái mới
+        working-directory: backend
+        run: uv run agentdash state push --sources p3,global
+      - name: Xuất snapshots cho frontend
+        working-directory: backend
+        run: uv run agentdash export --out ../frontend/public/data
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Xây dựng frontend tĩnh
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_BASE_PATH: /agent-adoption-dashboard
+        run: npm ci && npm run build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/out
+
+  deploy:
+    needs: sync
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

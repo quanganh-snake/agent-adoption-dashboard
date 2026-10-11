@@ -1,0 +1,3 @@
+[submodule "vendor/agent-impact"]
+	path = vendor/agent-impact
+	url = https://github.com/labri-progress/agent-impact

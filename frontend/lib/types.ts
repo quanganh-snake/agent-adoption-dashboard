@@ -1,0 +1,11 @@
+export type Reference = { id: string; text: string; doi_url?: string; code_url?: string; data_url?: string };
+export type Meta = { generated_at: string; ytd_until: string; sources: Record<string, { as_of?: string; as_of_min?: string; as_of_max?: string; repos?: number; repos_total?: number; prs_total?: number; cells?: number; [key: string]: unknown }>; warnings: { source: string; message: string }[] };
+export type BaselineValue = { id: string; paper: string | number; locator_vi: string; metric_vi: string; value: number | string; unit: string; n?: number; note_vi?: string };
+export type Baseline = { references: Reference[]; values: BaselineValue[]; checks: Record<string, { metric: string; paper: number; reproduced: number; deviation_flag: boolean }[]> };
+export type Series = { months: string[]; p2: Record<string, unknown>; p3: Record<string, unknown>; global: Record<string, unknown> };
+export type Yearly = { years: number[]; ytd_until: string; p2: Record<string, unknown>; p3: Record<string, unknown>; global: Record<string, unknown> };
+export type MonthlyRow = { id: string; group: 'p2'|'p3'|'global'; label_vi: string; unit: string; values: Record<string, number|null>; n: Record<string, number|null>; provisional: string[]; low_n: string[]; source_ids: string[] };
+export type Monthly2026 = { months: string[]; rows: MonthlyRow[] };
+export type Comparison = { [key: string]: unknown; paper?: Record<string, number|null>; reproduced?: Record<string, number|null>; latest?: Record<string, number|null> };
+export type PaperVsLatest = Record<string, Comparison[]>;
+export type SyncJob = { id: number; source: string; started_at: string; finished_at?: string; status: string; message?: string };
