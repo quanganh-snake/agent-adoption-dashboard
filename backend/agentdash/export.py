@@ -88,8 +88,8 @@ def export(out: str | Path | None = None):
     output = Path(out) if out else DATA_DIR / "snapshots"; output.mkdir(parents=True, exist_ok=True)
     with ExitStack() as stack:
         p2db, p3db, gdb = (stack.enter_context(connect(name)) for name in ("p2", "p3", "global"))
-        latest = [date.fromisoformat(str(value)[:10]) for value in (_one(p2db, "SELECT MAX(as_of) FROM p2_repo"), _one(p3db, "SELECT MAX(created_at) FROM p3_pr"), _one(gdb, "SELECT MAX(fetched_at) FROM gs_count")) if value]
-        ytd = min(latest) if latest else date.today(); months = _months(_cfg("START_MONTH", "2024-01"), ytd); years = [2024, 2025, 2026]
+        latest = [date.fromisoformat(str(value)[:10]) for value in (_one(p2db, "SELECT MAX(adoption_date) FROM p2_repo WHERE adoption_date < '2030'"), _one(p3db, "SELECT MAX(created_at) FROM p3_pr"), _one(gdb, "SELECT MAX(fetched_at) FROM gs_count")) if value]
+        ytd = max(latest) if latest else date.today(); months = _months(_cfg("START_MONTH", "2024-01"), ytd); years = [2024, 2025, 2026]
         ps, p3s, gs = p2.series(p2db, months, ytd), p3.series(p3db, months, ytd), global_.series(gdb, months)
         pass_id = _one(p2db, "SELECT MAX(pass_id) FROM p2_pass")
         total = _one(p2db, "SELECT total FROM p2_pass WHERE pass_id=?", (pass_id,)) if pass_id else None
