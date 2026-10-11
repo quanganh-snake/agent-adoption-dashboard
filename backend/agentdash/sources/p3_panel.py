@@ -6,6 +6,7 @@ from .p3_classify import classify_pr
 from .taskclass import classify_task
 
 QUERY = '''query($owner:String!,$name:String!,$cursor:String){repository(owner:$owner,name:$name){pullRequests(first:100,after:$cursor,orderBy:{field:CREATED_AT,direction:DESC}){pageInfo{endCursor hasNextPage}nodes{id number title bodyText createdAt mergedAt closedAt state headRefName author{__typename login}}}}}'''
+INCREMENTAL_QUERY = '''query($owner:String!,$name:String!,$cursor:String){repository(owner:$owner,name:$name){pullRequests(first:100,after:$cursor,orderBy:{field:UPDATED_AT,direction:DESC}){pageInfo{endCursor hasNextPage}nodes{id number title bodyText createdAt updatedAt mergedAt closedAt state headRefName author{__typename login}}}}}'''
 
 def _save_pr(con, repo: str, node: dict, human_baseline: bool):
     author = node.get("author") or {}; kind = classify_pr(author.get("login"), author.get("__typename"), node.get("headRefName"), node.get("bodyText"))
@@ -49,5 +50,35 @@ def sync_panel(client, max_minutes: int = 50, limit: int | None = None):
                     int(old or not page["pageInfo"]["hasNextPage"]),
                     repo,
                 ),
+            )
+            con.commit()
+        remaining = None if limit is None else max(0, limit - len(repos))
+        completed = con.execute(
+            "SELECT repo,human_baseline,last_incremental_at FROM p3_repo "
+            "WHERE backfill_done=1 AND stars>=0 ORDER BY COALESCE(last_incremental_at,'')"
+        ).fetchall()
+        if remaining is not None:
+            completed = completed[:remaining]
+        for repo, baseline, last_incremental_at in completed:
+            if datetime.now(timezone.utc) >= deadline:
+                break
+            owner, name = repo.split("/", 1)
+            data = client.graphql(
+                INCREMENTAL_QUERY,
+                {"owner": owner, "name": name, "cursor": None},
+            )
+            nodes = data["repository"]["pullRequests"]["nodes"]
+            cutoff = (
+                datetime.fromisoformat(last_incremental_at.replace("Z", "+00:00")) - timedelta(days=1)
+                if last_incremental_at else None
+            )
+            for node in nodes:
+                updated_at = datetime.fromisoformat(node["updatedAt"].replace("Z", "+00:00"))
+                if cutoff and updated_at < cutoff:
+                    break
+                _save_pr(con, repo, node, bool(baseline))
+            con.execute(
+                "UPDATE p3_repo SET last_incremental_at=? WHERE repo=?",
+                (datetime.now(timezone.utc).isoformat(), repo),
             )
             con.commit()
