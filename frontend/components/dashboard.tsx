@@ -73,9 +73,7 @@ export function ToolsTimelineTable({ tools }: { tools: ToolMetadata[] }) {
             <th>Nhà phát triển</th>
             <th>Phân loại</th>
             <th>Thời gian ra mắt</th>
-            <th>Mốc xuất hiện trong nghiên cứu</th>
-            <th>Dấu vết nhận diện</th>
-            <th>Mô tả &amp; Vai trò</th>
+            <th>Mốc sử dụng trong nghiên cứu</th>
           </tr>
         </thead>
         <tbody>
@@ -90,8 +88,6 @@ export function ToolsTimelineTable({ tools }: { tools: ToolMetadata[] }) {
               <td><span className="provisional" style={{ padding: '0.15rem 0.4rem', borderRadius: 4 }}>{item.category}</span></td>
               <td>{item.launchDate}</td>
               <td><strong>{item.firstSeenInStudy}</strong></td>
-              <td><small>{item.detectionType}</small></td>
-              <td style={{ textAlign: 'left', whiteSpace: 'normal', minWidth: 260 }}>{item.descriptionVi}</td>
             </tr>
           ))}
         </tbody>

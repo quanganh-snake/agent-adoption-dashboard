@@ -195,7 +195,7 @@ export default function YearComparison() {
             <header style={{ marginBottom: '0.75rem' }}>
               <h2>Thông tin thời gian ra mắt &amp; sử dụng của các AI Coding Agents</h2>
               <p className="muted">
-                Tổng hợp thời điểm công bố chính thức, phân loại kiến trúc agent, mốc xuất hiện sớm nhất trong nghiên cứu [2] &amp; [3], cùng phương thức phát hiện dấu vết trên GitHub.
+                Tổng hợp thời điểm công bố chính thức, phân loại kiến trúc agent và mốc sử dụng sớm nhất được ghi nhận trong nghiên cứu [2] &amp; [3].
               </p>
             </header>
             <ToolsTimelineTable tools={AI_TOOLS_TIMELINE} />
