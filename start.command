@@ -37,6 +37,10 @@ cleanup() {
 
 trap cleanup SIGINT SIGTERM EXIT
 
+# Giải phóng cổng 8000 và 3000 nếu có tiến trình cũ chiếm giữ
+lsof -ti :8000 | xargs kill -9 2>/dev/null || true
+lsof -ti :3000 | xargs kill -9 2>/dev/null || true
+
 # 1. Khởi động Backend FastAPI
 echo "[1/2] Đang khởi động Backend FastAPI (Port 8000)..."
 cd backend || exit 1
@@ -47,10 +51,11 @@ cd ..
 # 2. Khởi động Frontend Next.js
 echo "[2/2] Đang khởi động Frontend Next.js (Port 3000)..."
 cd frontend || exit 1
+# Dọn dẹp cache .next cũ trước khi dev để tránh lỗi 404 chunk
+rm -rf .next 2>/dev/null || true
 npm run dev -- -p 3000 &
 FRONTEND_PID=$!
 cd ..
-
 # Chờ 3 giây rồi mở trình duyệt mặc định
 (
     sleep 3
