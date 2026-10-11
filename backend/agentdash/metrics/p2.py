@@ -70,7 +70,8 @@ def series(db, months: list[str], ytd_until: date) -> dict[str, Any]:
     denominator=[]; adopters=[]; rates=[]; shares=[]
     for month in months:
         end = _month_end(month, ytd_until)
-        sample = {r['repo'] for r in repos if r['as_of'] and r['as_of'][:10] >= end}
+        # For months after dataset snapshot as_of, use latest available cohort
+        sample = {r['repo'] for r in repos if r['as_of'] and (r['as_of'][:10] >= end or r['as_of'][:10] >= "2026-02-21")}
         adopted = sum(1 for r in repos if r['repo'] in sample and r['adoption_date'] and r['adoption_date'][:10] <= end)
         denominator.append(len(sample)); adopters.append(adopted); rates.append(_pct(adopted, len(sample)))
         counts=by_month[month]; shares.append(_pct(counts['AI'], counts['AI'] + counts['Human']))
@@ -88,7 +89,10 @@ def yearly(db, years: list[int], ytd_until: date) -> dict[str, Any]:
         indexes=[i for i,m in enumerate(months) if m.startswith(str(year))]
         result['new_adopters'][str(year)] = (data['cumulative_adopters'][indexes[-1]] - (data['cumulative_adopters'][indexes[0]-1] if indexes[0] else 0)) if indexes else None
         result['adoption_rate_pct_year_end'][str(year)] = data['adoption_rate_pct'][indexes[-1]] if indexes else None
-        result['ai_commit_share_pct'][str(year)] = _pct(sum((data['ai_commit_share_pct'][i] or 0)*data['denominator'][i] for i in indexes), sum(data['denominator'][i] for i in indexes)) if indexes else None
+        yearly_commits = _rows(db, "SELECT auth_type, SUM(n) n FROM p2_commit_month WHERE substr(month,1,4)=? GROUP BY auth_type", (str(year),))
+        y_counts = {r['auth_type']: r['n'] for r in yearly_commits}
+        ai_c, human_c = y_counts.get('AI', 0), y_counts.get('Human', 0)
+        result['ai_commit_share_pct'][str(year)] = _pct(ai_c, ai_c + human_c) if (ai_c + human_c) else None
         result['new_adopters_by_tool'] = {t: {str(y): sum(v[i] for i,m in enumerate(months) if m.startswith(str(y))) for y in years} for t,v in data['new_adopters_by_tool'].items()}
     ratios=defaultdict(lambda: defaultdict(lambda: [0,0]))
     for row in _rows(db, "SELECT repo, month, auth_type, SUM(n) n FROM p2_commit_month GROUP BY repo, month, auth_type"):

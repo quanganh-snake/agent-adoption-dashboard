@@ -46,6 +46,11 @@ class GitHubClient:
         if remaining is not None: setattr(token, f"{budget}_remaining", int(remaining))
         reset = response.headers.get("x-ratelimit-reset")
         if reset: token.reset = float(reset)
+        if response.status_code in (502, 503, 504):
+            self._secondary_attempts += 1
+            if self._secondary_attempts <= 4:
+                time.sleep(10 * 2 ** (self._secondary_attempts - 1))
+                return self._request(method, path, budget=budget, **kwargs)
         if response.status_code in (403, 429):
             retry = response.headers.get("retry-after")
             if retry: time.sleep(float(retry)); return self._request(method, path, budget=budget, **kwargs)

@@ -30,7 +30,7 @@ def sync_panel(client, max_minutes: int = 50, limit: int | None = None):
             owner, name = repo.split("/", 1)
             try:
                 data = client.graphql(QUERY, {"owner": owner, "name": name, "cursor": cursor})
-            except RuntimeError as exc:
+            except Exception as exc:
                 if "NOT_FOUND" in str(exc):
                     con.execute(
                         "UPDATE p3_repo SET backfill_done=1,stars=-1 WHERE repo=?",
@@ -38,7 +38,8 @@ def sync_panel(client, max_minutes: int = 50, limit: int | None = None):
                     )
                     con.commit()
                     continue
-                raise
+                # Skip individual repository on persistent server/timeout error so sync finishes
+                continue
             page = data["repository"]["pullRequests"]
             for node in page["nodes"]:
                 _save_pr(con, repo, node, bool(baseline))

@@ -38,7 +38,7 @@ jobs:
         run: uv run agentdash sync global
       - name: Đồng bộ panel bài báo 3
         working-directory: backend
-        run: uv run agentdash sync p3 --enrich --max-minutes 300
+        run: uv run agentdash sync p3 --enrich --max-minutes 30
       - name: Công bố trạng thái mới
         working-directory: backend
         run: uv run agentdash state push --sources p3,global
